@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import javax.ws.rs.Path;
 import java.util.List;
 
 @RestController
@@ -55,9 +54,10 @@ public class FolderController {
     }
     
     @PostMapping("{id}/share/{sharedUserId}")
-    public void share(@PathVariable String id, 
+    public void share(HttpServletRequest request, @PathVariable int id,
                       @PathVariable String sharedUserId,
                       @RequestBody String role) {
-        folderService.share(id, sharedUserId, role);
+        User currentUser = (User) request.getAttribute("user");
+        folderService.share(currentUser, id, sharedUserId, role);
     }
 }

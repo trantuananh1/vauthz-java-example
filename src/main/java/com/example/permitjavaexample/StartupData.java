@@ -40,6 +40,7 @@ public class StartupData implements CommandLineRunner {
             actions.clear();
             actions = new HashMap<>();
             actions.put("create", new ActionBlockEditable());
+            actions.put("update", new ActionBlockEditable());
             actions.put("read", new ActionBlockEditable());
             actions.put("delete", new ActionBlockEditable());
             attributes.clear();
@@ -52,6 +53,14 @@ public class StartupData implements CommandLineRunner {
             ));
             ResourceRead comment = permit.api.resources.create(commentCreate);
 //        ResourceRead comment = permit.api.resources.get("comment");
+            //folder
+            HashMap<String, ActionBlockEditable> folderActions = new HashMap<>();
+            folderActions.put("share", new ActionBlockEditable());
+            folderActions.putAll(actions);
+            ResourceCreate folderCreate = ((
+                    new ResourceCreate("folder", "folders", folderActions).withAttributes(attributes)
+            ));
+            ResourceRead folder = permit.api.resources.create(folderCreate);
             // resource set
             String conditionStr = """
                     {
@@ -74,7 +83,9 @@ public class StartupData implements CommandLineRunner {
                     new ConditionSetCreate("own_comment", "Own Comments").withResourceId(comment.id).withConditions(map).withType(ConditionSetType.RESOURCESET)
             );
 //            ConditionSetRead ownComment = permit.api.conditionSets.get("own_comment");
-
+            ConditionSetRead ownFolder = permit.api.conditionSets.create(
+                    new ConditionSetCreate("own_folder", "Own Folders").withResourceId(folder.id).withConditions(map).withType(ConditionSetType.RESOURCESET)
+            );
             //relation
             //blog_comment_relation
             RelationRead blogCommentRelation = permit.api.resourceRelations.create("comment", new RelationCreate("parent", "Blog parent of Comment", blog.key)).withObjectResource(comment.key);
@@ -88,7 +99,18 @@ public class StartupData implements CommandLineRunner {
             ResourceRoleRead commentModerator = permit.api.resourceRoles.create(comment.key, new ResourceRoleCreate("moderator", "moderator")
                     .withDescription("Delete comments on own blogs")
                     .withPermissions(List.of("delete")));
-
+            //folder_author
+            ResourceRoleRead folderAuthor = permit.api.resourceRoles.create(folder.key, new ResourceRoleCreate("author", "author")
+                    .withDescription("")
+                    .withPermissions(List.of("update", "read", "create", "delete", "share")));
+            //comment_moderator
+            ResourceRoleRead folderEditor = permit.api.resourceRoles.create(folder.key, new ResourceRoleCreate("editor", "editor")
+                    .withDescription("")
+                    .withPermissions(List.of("update", "read", "create")));
+            //folder_viewer
+            ResourceRoleRead folderViewer = permit.api.resourceRoles.create(folder.key, new ResourceRoleCreate("viewer", "viewer")
+                    .withDescription("")
+                    .withPermissions(List.of("read")));
             //role derivation
             //blog_author_comment_moderator
             permit.api.resourceRoles.createRoleDerivation(comment.key, commentModerator.key,

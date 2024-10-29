@@ -1,7 +1,7 @@
 permit:
-  pdpUrl: 'http://10.60.108.80:7766'
-  apiUrl: 'http://10.60.108.80:8000'
-  apiKey: vauthz_2c53196e23a141f6898c96378d27773d
+  pdpUrl: 'http://171.254.94.32:7766'
+  apiUrl: 'http://171.254.94.32:8000'
+  apiKey: vauthz_66d4effcc1a747be8f37bda823ac45d3
 springdoc:
   swagger-ui:
     path: /swagger-ui

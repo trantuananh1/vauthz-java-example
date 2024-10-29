@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,6 +22,8 @@ public class FolderService {
     private final List<Folder> folders = new ArrayList<>();
     private final AtomicInteger folderIdCounter = new AtomicInteger();
 
+    private final Resource.Builder folderBuilder = new Resource.Builder("folder");
+
     private final UserService userService;
     private final Permit permit;
 
@@ -28,8 +31,19 @@ public class FolderService {
         this.userService = userService;
         this.permit = permit;
     }
-    
+
+    private void authorize(User user, String action, Resource resource) {
+        userService.authorize(user, action, resource);
+    }
+
+    private void authorize(User user, String action, Folder folder) {
+        var attributes = new HashMap<String, Object>();
+        attributes.put("author", folder.getAuthor());
+        userService.authorize(user, action, folderBuilder.withKey(folder.getId().toString()).withAttributes(attributes).build());
+    }
+
     public Folder createFolder(User user, String name) {
+        authorize(user, "create", folderBuilder.build());
         Folder folder = new Folder(folderIdCounter.incrementAndGet(), user.getKey(), name);
 
         try {
@@ -48,15 +62,19 @@ public class FolderService {
     }
     
     public List<Folder> getAllFolders(User user) {
+        authorize(user, "read", folderBuilder.build());
         return new ArrayList<>(folders);
     }
 
     public Folder getFolder(User user, int id) {
-        return getFolderById(id);
+        Folder folder = getFolderById(id);
+        authorize(user, "read", folder);
+        return folder;
     }
 
     public Folder updateFolder(User user, int id, String name) {
         Folder folder = getFolderById(id);
+        authorize(user, "update", folder);
         folder.setName(name);
         return folder;
     }
@@ -64,6 +82,7 @@ public class FolderService {
     public void deleteFolder(User user, int id) {
         boolean isDeleted = folders.removeIf(folder -> {
             if (folder.getId().equals(id)) {
+                authorize(user, "delete", folder);
                 return true;
             } else {
                 return false;
@@ -80,9 +99,12 @@ public class FolderService {
         }
     }
 
-    public void share(String folderId, String sharedUserId, String role) {
+    public void share(User user, int folderId, String sharedUserId, String role) {
         try {
-            permit.api.roleAssignments.assign(new RoleAssignmentCreate(role, sharedUserId).withResourceInstance("folder:" + folderId).withTenant("default"));
+            Folder folder = getFolderById(folderId);
+            authorize(user, "share", folder);
+            permit.api.roleAssignments.assign(new RoleAssignmentCreate(role, String.valueOf(sharedUserId))
+                    .withResourceInstance("folder:" + folderId).withTenant("default"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
