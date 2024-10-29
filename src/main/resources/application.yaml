@@ -1,0 +1,10 @@
+permit:
+  pdpUrl: 'http://10.60.108.80:7766'
+  apiUrl: 'http://10.60.108.80:8000'
+  apiKey: vauthz_2c53196e23a141f6898c96378d27773d
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    tags-sorter: alpha
+    operations-sorter: alpha
+    persist-authorization: true
